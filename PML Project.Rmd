@@ -1,0 +1,125 @@
+---
+title: "Practical Machine Learning Course Project"
+output:
+  html_document:
+    keep_md: yes
+---
+#Introduction
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
+
+In this project, we will be using data from Groupware@LES where the data is gathered from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+#Loading the Data 
+The training data for this project are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+```{r, echo=TRUE}
+setInternet2(use = TRUE)
+url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+download.file(url,destfile = "pml-training.csv")
+
+url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(url, destfile = "pml-testing.csv")
+
+pTrain<-read.csv("pml-training.csv", header=T, na.strings=c("NA", "#DIV/0!"))
+pTest<-read.csv("pml-testing.csv", header=T, na.string=c("NA", "#DIV/0!"))
+summary(pTrain)
+sapply(pTrain, class)
+```
+
+#Cleaning the Data
+##Brief Information on dataset
+1. There were 19622 observations with 160 variables within the training data.
+
+2. The "classe" variable in the training set is the outcome to predict
+
+3. There are many columns that contains all blank values and these will not be statistically influential for the prediction. Therefore we will drop those columns that contains all blank values.
+
+4. There are also a few variables which is meant for identifying or describing the record (e.g X, user_name, raw_timestamp_part1, raw_timestamp_part2, cvtd_timestamp, new_window and num_window.) and these do not have any statistical value for the prediction. They will be remove to reduce the data set.
+
+```{r, echo=TRUE}
+##Removing blank columns in both Training data set
+pTrain<-pTrain[,colSums(is.na(pTrain)) == 0]
+
+##Removing Variables that will not be used for prediction.
+pTrain<-pTrain[,-c(1:7)]
+
+```
+
+#Partitioning the Data 
+As there is no validation data set, we will partition the Training Data Set into training and validation (60/40).
+```{r, echo=TRUE}
+library(caret)
+iTrain <- createDataPartition(y=pTrain$classe, p=0.70, list=FALSE)
+pTrain_sub <- pTrain[iTrain,]
+pTrain_val <- pTrain[-iTrain,]
+```
+
+
+#Modelling using the training data
+## Steps:
+
+1. One model using classification tree method and one model using random forest method will be created.
+
+2. Model with the highest accuracy based on the results from the confusion matrix will be used for the run in the "Submission" part of this project.
+
+3. For fairness, the same seed will be set for each of the model runs.
+
+##Model 1 (classification Tree Method)
+```{r, echo=TRUE}
+library(caret)
+set.seed(12345)
+Model1 <- train(pTrain_sub$classe~.,data=pTrain_sub, method="rpart")
+pTree <- predict(Model1, pTrain_val)
+pTree_Test <- predict(Model1, pTest)
+confusionMatrix(pTree, pTrain_val$classe)
+
+```
+
+##Model 2 (Random Forest Method)
+```{r, echo=TRUE}
+library(randomForest)
+tr<-trainControl(method="cv", number=5)
+set.seed(12345)
+Model2 <- randomForest(pTrain_sub$classe~., data=pTrain_sub, ntree = 8)
+pRandomF <- predict(Model2, pTrain_val)
+pRandomF_Test <- predict(Model2, pTest)
+confusionMatrix(pRandomF, pTrain_val$classe)
+```
+
+#Conclusion
+Based on the comparison, the Random Forest method is statistically more accurate compared to the Classification Tree method. Therefore the Random Forest model will be used to predict the answers for the "Submission" part of this project. 
+
+#Results Generation
+```{r, echo=TRUE}
+answers = rep("A", 20)
+answers <- as.character(pRandomF_Test)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+answers
+```
+
+#Appendix 
+##1. Correlation Matrix Visualization
+```{r}
+library(corrplot)
+corrplot <- cor(pTrain[, -length(names(pTrain))])
+corrplot(corrplot, method="color")
+```
+
+##2. Tree Visualization
+```{r}
+library(rpart)
+library(rpart.plot)
+tModel <- rpart(classe ~ ., data=pTrain, method="class")
+prp(tModel) # fast plot
+```
