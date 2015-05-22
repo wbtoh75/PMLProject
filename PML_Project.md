@@ -2,7 +2,7 @@
 #Introduction
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.
 
-In this project, we will be using data from Groupware@LES where the data is gathered from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+In this project, we will be using data from Groupware@LES where the data is gathered from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants to predict the manner that the exercise was performed. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
 #Loading the Data 
 The training data for this project are available here: 
@@ -531,8 +531,8 @@ pTrain<-pTrain[,colSums(is.na(pTrain)) == 0]
 pTrain<-pTrain[,-c(1:7)]
 ```
 
-#Partitioning the Data 
-As there is no validation data set, we will partition the Training Data Set into training and validation (60/40).
+#Partitioning the Data for Cross Validation
+As there is no validation data set, we will partition the Training Data Set into training and validation (70/30).
 
 ```r
 library(caret)
@@ -582,33 +582,33 @@ confusionMatrix(pTree, pTrain_val$classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1520  466  466  429  151
-##          B   20  287   14  154   70
-##          C  128  386  546  381  356
+##          A 1505  481  481  444  146
+##          B   30  384   29  159  132
+##          C  113  274  516  361  282
 ##          D    0    0    0    0    0
-##          E    6    0    0    0  505
+##          E   26    0    0    0  522
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.4856          
-##                  95% CI : (0.4728, 0.4985)
+##                Accuracy : 0.4974          
+##                  95% CI : (0.4845, 0.5102)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc > NIR] : < 2.2e-16       
 ##                                           
-##                   Kappa : 0.3288          
+##                   Kappa : 0.3431          
 ##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9080  0.25198  0.53216   0.0000  0.46673
-## Specificity            0.6409  0.94564  0.74254   1.0000  0.99875
-## Pos Pred Value         0.5013  0.52661  0.30384      NaN  0.98826
-## Neg Pred Value         0.9460  0.84045  0.88258   0.8362  0.89263
+## Sensitivity            0.8990  0.33714  0.50292   0.0000  0.48244
+## Specificity            0.6314  0.92625  0.78802   1.0000  0.99459
+## Pos Pred Value         0.4923  0.52316  0.33376      NaN  0.95255
+## Neg Pred Value         0.9402  0.85343  0.88246   0.8362  0.89507
 ## Prevalence             0.2845  0.19354  0.17434   0.1638  0.18386
-## Detection Rate         0.2583  0.04877  0.09278   0.0000  0.08581
-## Detection Prevalence   0.5152  0.09261  0.30535   0.0000  0.08683
-## Balanced Accuracy      0.7745  0.59881  0.63735   0.5000  0.73274
+## Detection Rate         0.2557  0.06525  0.08768   0.0000  0.08870
+## Detection Prevalence   0.5195  0.12472  0.26270   0.0000  0.09312
+## Balanced Accuracy      0.7652  0.63170  0.64547   0.5000  0.73851
 ```
 
 ##Model 2 (Random Forest Method)
@@ -636,33 +636,33 @@ confusionMatrix(pRandomF, pTrain_val$classe)
 ## 
 ##           Reference
 ## Prediction    A    B    C    D    E
-##          A 1668    9    0    0    0
-##          B    2 1121   14    3    7
-##          C    2    7 1003    9    2
-##          D    2    2    9  950    3
-##          E    0    0    0    2 1070
+##          A 1671   11    4    0    0
+##          B    3 1119   11    2    5
+##          C    0    6 1008   26    3
+##          D    0    1    3  933    5
+##          E    0    2    0    3 1069
 ## 
 ## Overall Statistics
 ##                                           
-##                Accuracy : 0.9876          
-##                  95% CI : (0.9844, 0.9903)
+##                Accuracy : 0.9856          
+##                  95% CI : (0.9822, 0.9884)
 ##     No Information Rate : 0.2845          
 ##     P-Value [Acc > NIR] : < 2.2e-16       
 ##                                           
-##                   Kappa : 0.9843          
+##                   Kappa : 0.9817          
 ##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9964   0.9842   0.9776   0.9855   0.9889
-## Specificity            0.9979   0.9945   0.9959   0.9967   0.9996
-## Pos Pred Value         0.9946   0.9773   0.9804   0.9834   0.9981
-## Neg Pred Value         0.9986   0.9962   0.9953   0.9972   0.9975
+## Sensitivity            0.9982   0.9824   0.9825   0.9678   0.9880
+## Specificity            0.9964   0.9956   0.9928   0.9982   0.9990
+## Pos Pred Value         0.9911   0.9816   0.9664   0.9904   0.9953
+## Neg Pred Value         0.9993   0.9958   0.9963   0.9937   0.9973
 ## Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
-## Detection Rate         0.2834   0.1905   0.1704   0.1614   0.1818
-## Detection Prevalence   0.2850   0.1949   0.1738   0.1641   0.1822
-## Balanced Accuracy      0.9971   0.9894   0.9867   0.9911   0.9942
+## Detection Rate         0.2839   0.1901   0.1713   0.1585   0.1816
+## Detection Prevalence   0.2865   0.1937   0.1772   0.1601   0.1825
+## Balanced Accuracy      0.9973   0.9890   0.9876   0.9830   0.9935
 ```
 
 #Conclusion
@@ -680,6 +680,7 @@ pml_write_files = function(x){
     write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
   }
 }
+pml_write_files(answers)
 answers
 ```
 
