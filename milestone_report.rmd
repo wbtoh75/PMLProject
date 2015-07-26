@@ -1,0 +1,135 @@
+---
+title: "Milestone_report"
+author: "Toh Wei Beng"
+date: "26 July 2015"
+output: html_document
+---
+
+# Introduction
+
+This milestone report is part of the Data Science Capstone Project of [Coursera](https://www.coursera.org) with [Swiftkey](http://swiftkey.com/), as the corporate partner in this capstone project.This project is to create a text prediction application to predict the next word based on users input. News, Blogs and Twitter data sources are provided from Swiftkey which will be used to find common expressions that can be used to predict the next word based on users input.
+
+```{r, echo=TRUE}
+library(ggplot2)
+library(RWekajars)
+library(tm)
+library(RWeka)
+library(rJava)
+library(magrittr)
+library(stringi)
+```
+
+# Download the Data
+Data downloaded and unzip into the working directory using the below codes:
+```{r, echo=TRUE}
+##code are commented out so as to reduce the generation time of this report
+#fileURL <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+#download.file(fileURL, destfile = "Dataset.zip", method = "curl")
+#unlink(fileURL)
+#unzip("Dataset.zip")
+```
+
+# Loading the Data
+```{r, echo=TRUE}
+blogs <- readLines("en_US.blogs.txt", encoding="UTF-8", skipNul=TRUE)
+news <- readLines("en_US.news.txt", encoding = "UTF-8", skipNul=TRUE)
+twitter <- readLines("en_US.twitter.txt", encoding="UTF-8", skipNul=TRUE)
+```
+
+# Basic summaries of the loaded files
+```{r, echo=TRUE}
+blogs_Size <- file.info("en_US.blogs.txt")$size / 1024^2
+news_Size <- file.info("en_US.news.txt")$size / 1024^2
+twitter_Size <- file.info("en_US.twitter.txt")$size / 1024^2
+
+
+maxLength_Blogs <- max(nchar(blogs))
+maxLength_News <- max(nchar(news))
+maxLength_Twitter <- max(nchar(twitter))
+
+
+blogs_Words <- sum(sapply(gregexpr("\\S+", blogs), length))
+news_Words <- sum(sapply(gregexpr("\\S+", news), length))
+twitter_Words <- sum(sapply(gregexpr("\\S+", twitter), length))
+
+blogs_Lines <- length(blogs)
+news_Lines <- length(news)
+twitter_Lines <- length(twitter)
+
+data_Summary <- data.frame(
+        fileName = c("Blogs","News","Twitter"),
+        fileSize = c(round(blogs_Size, digits = 2), 
+                     round(news_Size,digits = 2), 
+                     round(twitter_Size, digits = 2)),
+        lineCount = c(blogs_Lines, news_Lines, twitter_Lines),
+        wordCount = c(blogs_Words, news_Words, twitter_Words),
+        maxCharacters = c(maxLength_Blogs, maxLength_News, maxLength_Twitter)
+        )
+data_Summary
+```
+
+# Creating n-gram dataset to be used for the predictive application
+In Natural Language Processing (NLP) an *n*-gram is a contiguous sequence of n items from a given sequence of text or speech and is useful for text prediction application. As the dataset was too huge for quick analysis, a smaller data sample size will be used to demo how the n-gram is being created.
+
+```{r, echo=TRUE}
+sampleTexts <- function(data, percentage)
+{
+  sample.size <- ceiling(length(data) * percentage)[1]
+  sampled_entries <- sample(data, sample.size, replace = FALSE)
+  return(sampled_entries)
+}
+
+small_blog <- sampleTexts(blogs, 0.01)
+small_twitter <- sampleTexts(twitter, 0.01)
+small_news <- sampleTexts(news, 0.01)
+combined_data <- c(small_blog, small_twitter, small_news)
+
+# creating corpus
+getCorpus <- function(v) {
+  # Processes a vector of documents into a tm Corpus
+  corpus <- VCorpus(VectorSource(v))
+  corpus <- tm_map(corpus, stripWhitespace)  # remove whitespace
+  corpus <- tm_map(corpus, content_transformer(stri_trans_tolower))  # lowercase all
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, removeNumbers)
+  profanity <- read.csv('profanity.csv',header=FALSE)
+  corpus <- tm_map(corpus,removeWords,profanity$V1)
+  toEmpty <- content_transformer(function(x, pattern) gsub(pattern, "", x))
+  corpus <- tm_map(corpus, toEmpty, "[^[:alpha:][:space:]]")
+  corpus 
+}
+fCorp <- getCorpus(combined_data)
+fCorpDF <-data.frame(text=unlist(sapply(fCorp,`[`, "content")), stringsAsFactors = FALSE)
+
+# Tokenization function for the n-grams
+ngramTokenizer <- function(theCorpus, ngramCount) {
+  ngramFunction <- NGramTokenizer(theCorpus, Weka_control(min = ngramCount, max = ngramCount, delimiters = "\\r\\n\\t.,;:\"()?!"))
+  ngramFunction <- data.frame(table(ngramFunction))
+  ngramFunction <- ngramFunction[order(ngramFunction$Freq, decreasing = TRUE),][1:10,]
+  colnames(ngramFunction) <- c("Word","Frequency")
+  ngramFunction
+}
+
+# Creating the ngram
+unigram <- ngramTokenizer(fCorpDF, 1)
+bigram <- ngramTokenizer(fCorpDF, 2)
+```
+
+# Histogram of 1-gram
+```{r, echo=TRUE}
+unigram[unigram == ""] <- NA
+unigramC <- unigram[complete.cases(unigram),]
+ggplot(unigramC, aes(x=Word,y=Frequency)) + geom_bar(stat="Identity", fill="Red") +geom_text(aes(label=Frequency), vjust=-0.20) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Histogram of 2-gram
+```{r, echo=TRUE}
+bigram[bigram == ""] <- NA
+bigramC <- bigram[complete.cases(bigram),]
+ggplot(bigramC, aes(x=Word,y=Frequency)) + geom_bar(stat="Identity", fill="Red") +geom_text(aes(label=Frequency), vjust=-0.20) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Next Steps For The Prediction Application
+Next step of the capstone project will be to create a prediction application that can predict the next word a user might want to write. 
+
+
